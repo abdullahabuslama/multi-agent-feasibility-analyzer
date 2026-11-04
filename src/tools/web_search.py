@@ -15,11 +15,12 @@ from exa_py.api import Result
 from config.settings import get_settings
 from src.tools.base import register_tool
 
-RESULTS_PER_SEARCH = 5
-# Without a cap one search returns about 10,000 characters (about 2,700
-# tokens). An analysis makes about 20 searches, so that would not fit the
-# LLM's token limits. 1,000 characters per result still holds the answer.
-CHARACTERS_PER_RESULT = 1000
+# Every search result stays in the agent's conversation until it writes its
+# finding, so results must be small. Groq's free tier allows 8,000 tokens per
+# minute. With 5 results of 1,000 characters, three searches already broke
+# that limit. 3 results of 600 characters is about 500 tokens per search.
+RESULTS_PER_SEARCH = 3
+CHARACTERS_PER_RESULT = 600
 
 MISSING_KEY_MESSAGE = (
     "EXA_API_KEY is not set. Add it to `.env`. "
