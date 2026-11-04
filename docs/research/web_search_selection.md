@@ -166,13 +166,16 @@ The tool is built in `src/tools/web_search.py`, as described below.
 1. One function: `@register_tool def web_search(query: str) -> str`. Its
    docstring tells the LLM when to use it, and to write the country
    ("Egypt") into the query.
-2. It calls Exa with `type="auto"`, 5 results, and `highlights` for the
+2. It calls Exa with `type="auto"`, 3 results, and `highlights` for the
    text. Highlights are the passages that match the query, which makes a
    better `Evidence.snippet` than the top of the page. A live check
    confirmed this: the Paymob result held "2.75% + 3 EGP per transaction".
-   Each result is capped at 1,000 characters. Without the cap, one search
-   returned about 10,000 characters (about 2,700 tokens). `userLocation` is
-   left off: in our test it changed little and slowed each call.
+   Each result is capped at 600 characters, about 500 tokens per search.
+   Without a cap, one search returned about 10,000 characters (about 2,700
+   tokens). Every result stays in the agent's conversation, and Groq's free
+   tier allows 8,000 tokens per minute: with 5 results of 1,000 characters,
+   three searches already broke that limit. `userLocation` is left off: in
+   our test it changed little and slowed each call.
 3. The output looks like `search_company_docs` in `src/tools/db_tool.py`:
    a `[source: <url>]` line, then the title, the publish date when Exa gives
    one, and the passages. The agents can copy the URL into
