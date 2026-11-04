@@ -24,3 +24,4 @@ frontend/*.tsbuildinfo
 .vscode/
 .idea/
 .DS_Store
+.claude
