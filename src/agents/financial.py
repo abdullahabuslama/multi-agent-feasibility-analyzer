@@ -1,4 +1,4 @@
-"""Financial Analysis agent — not implemented yet.
+"""Financial Analysis agent.
 
 Goal: decide if the idea makes economic sense under explicit assumptions.
 
@@ -13,12 +13,14 @@ All important arithmetic must be done by deterministic code, not by the LLM.
 
 Output: an AgentFinding with assumptions, cost breakdown, benefit estimate,
 ROI, payback period, and confidence notes.
+
+It runs the shared analyst loop in `src/agents/analyst.py`. To return
+more fields than AgentFinding has, subclass AgentFinding and set
+`output_type` on this class.
 """
 
-from src.agents.base import BaseAgent, placeholder_finding
-from src.orchestrator.state import AgentFinding, FeasibilityState
+from src.agents.analyst import AnalystAgent
 
 
-class FinancialAgent(BaseAgent):
-    def analyze(self, state: FeasibilityState) -> AgentFinding:
-        return placeholder_finding(self.name)
+class FinancialAgent(AnalystAgent):
+    pass

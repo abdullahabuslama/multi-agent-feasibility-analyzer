@@ -19,12 +19,12 @@ def test_every_configured_agent_builds(name: str) -> None:
 
 
 @pytest.mark.parametrize("name", ANALYSTS)
-def test_stub_analyst_posts_pending_finding_under_its_name(name: str) -> None:
+def test_analyst_posts_done_finding_under_its_own_name(name: str) -> None:
     update = build_agent(name).run({"idea": SAMPLE_IDEA})
 
     finding = update["findings"][name]
     assert finding.agent == name
-    assert finding.status == FindingStatus.PENDING
+    assert finding.status == FindingStatus.DONE
 
 
 def test_supervisor_posts_plan_with_only_known_agents() -> None:

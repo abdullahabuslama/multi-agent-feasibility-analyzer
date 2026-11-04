@@ -21,7 +21,7 @@ This is a training project. The full proposal is in
 
 ## Project status
 
-**The shared base is ready. The specialist agents are not built yet.**
+**The shared base is ready. The four analysts run; the validator and reporter are stubs.**
 
 | Part | Status |
 |---|---|
@@ -30,12 +30,16 @@ This is a training project. The full proposal is in
 | Workflow graph with a revision loop | ✅ Ready |
 | RAG layer: company knowledge base in Qdrant + search tool | ✅ Ready |
 | HTTP API | ✅ Ready |
-| Technical, Financial, Competitor, Risk, Validator, Reporter agents | 🚧 Stubs: one per team member |
+| Technical, Financial, Competitor, Risk agents | ✅ Run the shared analyst loop (tools + finding). Owners tune prompts and output fields. |
+| Validator, Reporter agents | 🚧 Stubs: one per team member |
 | Web search tool (Exa) | ✅ Ready |
 
-Until an agent is built, it returns a finding that says
-`"The <name> agent is not implemented yet."` So the whole workflow already
-runs from start to end.
+The four analysts share one work loop (`src/agents/analyst.py`): read the
+idea, the supervisor's brief, the other agents' findings and the reviewer's
+feedback, call tools up to 5 times, then return a finding with evidence.
+Until the validator and reporter are built, the validator approves
+everything and the reporter lists the findings. So the whole workflow
+already runs from start to end.
 
 ---
 
@@ -116,12 +120,15 @@ its file.
 ├── config/
 │   ├── agents.yaml           # Every agent: role, goal, prompt, tools, LLM settings
 │   ├── tasks.yaml            # Workflow stages, revision limit, task for each agent
+│   ├── models.py             # Typed shape of the two YAML files, checked at load
 │   └── settings.py           # Reads .env and the YAML files
 ├── data/
 │   └── knowledge_base/       # Synthetic company documents used by RAG
 ├── src/
 │   ├── agents/
-│   │   ├── base.py           # BaseAgent: the contract every agent follows
+│   │   ├── base.py           # BaseAgent contract + build_agent factory
+│   │   ├── analyst.py        # Shared work loop of the four analysts
+│   │   ├── request.py        # How agents write their request to the LLM
 │   │   ├── supervisor.py     # Orchestrator: briefs the other agents
 │   │   └── technical.py, financial.py, competitor.py,
 │   │       risk.py, validator.py, reporter.py
@@ -145,7 +152,7 @@ its file.
 │   └── utils/
 │       ├── logger.py         # Logs and per-agent timing
 │       ├── guardrails.py     # Checks what agents return
-│       └── llm.py            # The one place that creates chat models
+│       └── llm.py            # Creates chat models; structured output
 ├── api/
 │   ├── app.py                # HTTP endpoints
 │   └── dependencies.py       # Builds the graph once for all requests
@@ -240,6 +247,10 @@ no internet.
 | `QDRANT_COLLECTION` | Collection name for the company documents. |
 | `KNOWLEDGE_BASE_DIR` | Folder that the ingest command reads. |
 | `LOG_LEVEL` | `INFO` shows when each agent starts and how long it took. |
+
+Both YAML files are loaded into typed models (`config/models.py`). A
+misspelled key, an unknown agent name, or a broken workflow stops the app at
+start-up with a clear message, not in the middle of a run.
 
 ### `config/agents.yaml`
 
@@ -342,4 +353,5 @@ Then import the module in `src/tools/__init__.py`, and add `my_tool` to the
 ## Open tasks
 
 - **Specialist agents:** Technical, Financial, Competitor, Risk, Validator,
-  and Reporter. One owner each.
+  and Reporter. One owner each. Start with
+  [docs/building_an_agent.md](docs/building_an_agent.md).

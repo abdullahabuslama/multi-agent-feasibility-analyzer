@@ -1,4 +1,4 @@
-"""Technical Feasibility agent — not implemented yet.
+"""Technical Feasibility agent.
 
 Goal: decide if the company can realistically build the idea.
 
@@ -11,12 +11,14 @@ Responsibilities (proposal §6):
 
 Output: an AgentFinding with requirements, dependencies, constraints,
 key assumptions, and a feasibility score (0–10).
+
+It runs the shared analyst loop in `src/agents/analyst.py`. To return
+more fields than AgentFinding has, subclass AgentFinding and set
+`output_type` on this class.
 """
 
-from src.agents.base import BaseAgent, placeholder_finding
-from src.orchestrator.state import AgentFinding, FeasibilityState
+from src.agents.analyst import AnalystAgent
 
 
-class TechnicalAgent(BaseAgent):
-    def analyze(self, state: FeasibilityState) -> AgentFinding:
-        return placeholder_finding(self.name)
+class TechnicalAgent(AnalystAgent):
+    pass
