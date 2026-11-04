@@ -21,6 +21,7 @@ from langchain_core.tools import BaseTool
 from src.agents.base import BaseAgent
 from src.agents.request import format_request, idea_sections
 from src.memory import blackboard
+from src.orchestrator.events import EventKind, emit
 from src.orchestrator.state import AgentFinding, FeasibilityState, FindingStatus
 from src.utils.llm import structured_output
 from src.utils.logger import get_logger
@@ -29,6 +30,9 @@ from src.utils.logger import get_logger
 # can hold several tool calls. 5 matches the search budget per agent in
 # `docs/research/web_search_selection.md`.
 MAX_TOOL_ROUNDS = 5
+
+# How much of a tool result the dashboard shows. The LLM always gets all of it.
+TOOL_PREVIEW_CHARACTERS = 300
 
 FINAL_ANSWER_REQUEST = (
     "Now write your finding. Cite every source you used as evidence, "
@@ -41,6 +45,7 @@ logger = get_logger(__name__)
 class AnalystAgent(BaseAgent):
     def analyze(self, state: FeasibilityState) -> AgentFinding:
         messages = self._research([SystemMessage(self.system_prompt), HumanMessage(self._request(state))])
+        emit(EventKind.LLM_CALLED, self.name, purpose="final_answer")
         finding = structured_output(self.llm, self.output_type).invoke(
             [*messages, HumanMessage(FINAL_ANSWER_REQUEST)]
         )
@@ -75,24 +80,34 @@ class AnalystAgent(BaseAgent):
             return messages
         model = self.llm.bind_tools(self.tools)
         tools_by_name = {tool.name: tool for tool in self.tools}
-        for _ in range(MAX_TOOL_ROUNDS):
+        for round_number in range(1, MAX_TOOL_ROUNDS + 1):
+            emit(EventKind.LLM_CALLED, self.name, purpose="research", round=round_number)
             reply: AIMessage = model.invoke(messages)
             messages = [*messages, reply]
             if not reply.tool_calls:
                 break
-            messages += [_call_tool(tools_by_name, call) for call in reply.tool_calls]
+            messages += [self._call_tool(tools_by_name, call) for call in reply.tool_calls]
         return messages
 
-
-def _call_tool(tools_by_name: dict[str, BaseTool], call: ToolCall) -> ToolMessage:
-    """Run one tool call. A failure goes back to the LLM as text, so it can try another way."""
-    tool = tools_by_name.get(call["name"])
-    if tool is None:
-        content = f"There is no tool named '{call['name']}'."
-    else:
-        try:
-            content = tool.invoke(call["args"])
-        except Exception as error:  # a tool that is down must not stop the analysis
-            logger.warning("Tool %s failed: %s", call["name"], error)
-            content = f"The tool failed: {error}"
-    return ToolMessage(content, tool_call_id=call["id"])
+    def _call_tool(self, tools_by_name: dict[str, BaseTool], call: ToolCall) -> ToolMessage:
+        """Run one tool call. A failure goes back to the LLM as text, so it can try another way."""
+        emit(EventKind.TOOL_CALLED, self.name, tool=call["name"], args=call["args"])
+        tool = tools_by_name.get(call["name"])
+        ok = False
+        if tool is None:
+            content = f"There is no tool named '{call['name']}'."
+        else:
+            try:
+                content, ok = str(tool.invoke(call["args"])), True
+            except Exception as error:  # a tool that is down must not stop the analysis
+                logger.warning("Tool %s failed: %s", call["name"], error)
+                content = f"The tool failed: {error}"
+        emit(
+            EventKind.TOOL_RETURNED,
+            self.name,
+            tool=call["name"],
+            ok=ok,
+            preview=content[:TOOL_PREVIEW_CHARACTERS],
+            characters=len(content),
+        )
+        return ToolMessage(content, tool_call_id=call["id"])

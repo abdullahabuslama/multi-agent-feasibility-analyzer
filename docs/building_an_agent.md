@@ -51,6 +51,12 @@ Every `run(state)` does the same three things (`BaseAgent.run` in
 
 **You write `analyze`. Everything around it already exists.**
 
+**Your agent shows up in the dashboard by itself.** Its card, status, and
+timeline row come from `config/tasks.yaml`. The analyst loop already reports
+every LLM call and tool call. To report extra steps of your own, call
+`emit(EventKind.TOOL_CALLED, self.name, ...)` from `src/orchestrator/events.py`.
+It does nothing in unit tests.
+
 ## The files you own
 
 | You own | Your files |

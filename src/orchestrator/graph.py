@@ -19,6 +19,7 @@ from langgraph.graph.state import CompiledStateGraph
 from config.models import WorkflowConfig
 from config.settings import load_tasks_config
 from src.agents import build_agent
+from src.orchestrator.events import publish_node_events
 from src.orchestrator.router import route_after_review
 from src.orchestrator.state import FeasibilityState
 from src.utils.logger import trace_node
@@ -30,7 +31,8 @@ def build_graph(checkpointer: BaseCheckpointSaver | None = None) -> CompiledStat
 
     graph = StateGraph(FeasibilityState)
     for name in [workflow.entry, *workflow.agents]:
-        graph.add_node(name, trace_node(name)(build_agent(name).run))
+        # Two small wrappers, each with one job: log the run, and tell the dashboard.
+        graph.add_node(name, publish_node_events(name)(trace_node(name)(build_agent(name).run)))
 
     graph.add_edge(START, workflow.entry)
     _connect(graph, [workflow.entry], stages[0])
