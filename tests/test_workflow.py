@@ -27,7 +27,7 @@ def test_full_run_collects_every_output() -> None:
 
 
 def test_revision_loop_stops_at_max_revisions(monkeypatch: pytest.MonkeyPatch) -> None:
-    max_revisions = load_tasks_config()["workflow"]["review"]["max_revisions"]
+    max_revisions = load_tasks_config().workflow.review.max_revisions
     always_reject = ValidationResult(
         approved=False, summary="Missing evidence.", revision_requests=["technical"]
     )
