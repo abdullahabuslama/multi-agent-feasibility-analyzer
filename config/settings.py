@@ -14,6 +14,8 @@ from dotenv import load_dotenv
 from pydantic import field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
+from config.models import AgentConfig, TasksConfig
+
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 CONFIG_DIR = PROJECT_ROOT / "config"
 PROMPTS_DIR = PROJECT_ROOT / "src" / "prompts"
@@ -58,21 +60,24 @@ def get_settings() -> Settings:
 
 
 @lru_cache
-def load_agents_config() -> dict[str, dict[str, Any]]:
+def load_agents_config() -> dict[str, AgentConfig]:
     """Agent definitions from `config/agents.yaml`, keyed by agent name."""
-    return _read_yaml("agents.yaml")
+    return {name: AgentConfig(**entry) for name, entry in _read_yaml("agents.yaml").items()}
 
 
 @lru_cache
-def load_tasks_config() -> dict[str, Any]:
-    """Workflow and task definitions from `config/tasks.yaml`."""
-    return _read_yaml("tasks.yaml")
+def load_tasks_config() -> TasksConfig:
+    """Workflow and task definitions from `config/tasks.yaml`.
 
-
-def workflow_agents() -> list[str]:
-    """Every agent in the workflow stages, in order. The entry agent is not included."""
-    stages = load_tasks_config()["workflow"]["stages"]
-    return [name for stage in stages for name in stage]
+    Also checks that every agent the workflow names is declared in
+    `config/agents.yaml`, because the two files are edited separately.
+    """
+    config = TasksConfig(**_read_yaml("tasks.yaml"))
+    workflow = config.workflow
+    undeclared = sorted(set([workflow.entry, *workflow.agents]) - set(load_agents_config()))
+    if undeclared:
+        raise ValueError(f"tasks.yaml uses agents not declared in agents.yaml: {undeclared}.")
+    return config
 
 
 def _read_yaml(file_name: str) -> dict[str, Any]:
