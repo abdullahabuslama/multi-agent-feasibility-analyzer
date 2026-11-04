@@ -12,6 +12,14 @@ venv/
 # Local Qdrant storage (rebuilt with `python -m src.memory.ingest --rebuild`)
 .qdrant/
 
+# Dashboard run history (SQLite file)
+.runs/
+
+# Frontend
+frontend/node_modules/
+frontend/dist/
+frontend/*.tsbuildinfo
+
 # Editors / OS
 .vscode/
 .idea/
