@@ -30,6 +30,7 @@ This is a training project. The full proposal is in
 | Workflow graph with a revision loop | ✅ Ready |
 | RAG layer: company knowledge base in Qdrant + search tool | ✅ Ready |
 | HTTP API | ✅ Ready |
+| Live dashboard (`frontend/`) | ✅ Ready: start runs, watch every agent live, reopen past runs |
 | Technical, Financial, Competitor, Risk agents | ✅ Run the shared analyst loop (tools + finding). Owners tune prompts and output fields. |
 | Validator, Reporter agents | 🚧 Stubs: one per team member |
 | Web search tool (Exa) | ✅ Ready |
@@ -106,7 +107,9 @@ its file.
 | Vector store | Qdrant in local mode: a folder on disk, no Docker needed |
 | Embeddings | Sentence Transformers `all-MiniLM-L6-v2`, runs locally |
 | Document parsing | Markdown/text, PDF (PyMuPDF), Word (python-docx) |
-| API | FastAPI + Uvicorn |
+| API | FastAPI + Uvicorn; live events as Server-Sent Events |
+| Run history | SQLite file (`.runs/runs.sqlite`), no server needed |
+| Dashboard | React + TypeScript + Vite, React Flow for the graph, Tailwind |
 | Tests | pytest |
 
 ---
@@ -140,7 +143,11 @@ its file.
 │   ├── orchestrator/
 │   │   ├── state.py          # Shared state and data models
 │   │   ├── graph.py          # Builds the LangGraph workflow from tasks.yaml
-│   │   └── router.py         # Revise or move on after the validator
+│   │   ├── router.py         # Revise or move on after the validator
+│   │   └── events.py         # Live events agents emit for the dashboard
+│   ├── runs/
+│   │   ├── service.py        # The one place that runs the graph
+│   │   └── store.py          # Saves runs and their events in SQLite
 │   ├── memory/
 │   │   ├── blackboard.py     # The only writer of agent results into the state
 │   │   ├── long_term.py      # Qdrant vector store
@@ -154,8 +161,17 @@ its file.
 │       ├── guardrails.py     # Checks what agents return
 │       └── llm.py            # Creates chat models; structured output
 ├── api/
-│   ├── app.py                # HTTP endpoints
-│   └── dependencies.py       # Builds the graph once for all requests
+│   ├── app.py                # Puts the routers together; serves the dashboard
+│   ├── routes/               # analyses.py, runs.py (incl. live SSE), workflow.py
+│   ├── schemas.py            # Response models (the dashboard's types come from them)
+│   ├── static.py             # Serves frontend/dist as a single-page app
+│   └── dependencies.py       # Graph, run store, and run service for the endpoints
+├── frontend/                 # The live dashboard (see "6. Open the dashboard")
+│   └── src/
+│       ├── api/              # client.ts + schema.d.ts (generated from the API)
+│       ├── run/              # deriveRunView.ts: events -> what each view shows
+│       ├── components/       # Graph, timeline, agent panel, live log, report
+│       └── pages/            # Home (new run + history) and the run view
 └── tests/
     ├── conftest.py           # Fake LLM and in-memory Qdrant
     ├── test_agents/
@@ -221,14 +237,52 @@ curl -X POST http://127.0.0.1:8000/analyses \
 The answer contains the supervisor's `plan`, every agent's `findings`, the
 `validation` result, and the `report`.
 
+Every analysis, from here or from the dashboard, is saved in
+`.runs/runs.sqlite` with all its live events, so you can reopen it later.
+
 ### 5. Run the tests
 
 ```bash
 pytest
+cd frontend && npm test
 ```
 
-The tests use a fake LLM and an in-memory Qdrant, so they need no API key and
-no internet.
+The Python tests use a fake LLM, an in-memory Qdrant, and a temporary run
+history, so they need no API key and no internet.
+
+### 6. Open the dashboard
+
+The dashboard starts analyses and shows them live: which agent is working,
+what it is searching for, who is waiting for whom, and the final report.
+
+**Every day** (two terminals):
+
+```bash
+uvicorn api.app:app --reload          # terminal 1, port 8000
+cd frontend && npm install && npm run dev   # terminal 2, opens on port 5173
+```
+
+Open <http://127.0.0.1:5173>. Vite sends `/api` calls to port 8000.
+
+**One server only:** run `npm run build` in `frontend/` once. Then
+`uvicorn api.app:app` also serves the dashboard at <http://127.0.0.1:8000/>.
+
+**After changing an API response model**, keep the API running and run
+`npm run gen:api` in `frontend/`. It regenerates `src/api/schema.d.ts`, so
+the TypeScript types match the Python models.
+
+| Screen | What you see |
+|---|---|
+| Home | New analysis form, and every past run with its status |
+| Run → Graph | The workflow from `tasks.yaml`. Each card shows the status, what the agent is doing now, time, and tool calls. Amber edges point at who an agent waits for. |
+| Run → Timeline | One row per agent. Solid bars are running, striped bars are waiting, dots are tool calls. |
+| Run → Report | The final report |
+| Agent panel | Click an agent: its live activity (each LLM call, search, and result), its brief, and its output with evidence links |
+| Live log | Every event, filterable by agent |
+
+> **Groq's free tier allows 8,000 tokens per minute.** Three analysts work
+> in parallel, so runs often fail with "429 rate limit". The dashboard shows
+> which agent hit it. A paid Groq tier or another provider in `.env` fixes it.
 
 ---
 
@@ -246,6 +300,7 @@ no internet.
 | `QDRANT_PATH` | Folder for local mode. |
 | `QDRANT_COLLECTION` | Collection name for the company documents. |
 | `KNOWLEDGE_BASE_DIR` | Folder that the ingest command reads. |
+| `RUNS_DB_PATH` | SQLite file for the run history. A file, not a server. |
 | `LOG_LEVEL` | `INFO` shows when each agent starts and how long it took. |
 
 Both YAML files are loaded into typed models (`config/models.py`). A
