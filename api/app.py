@@ -30,6 +30,14 @@ app = FastAPI(
 
 
 class AnalysisResponse(BaseModel):
+    """What the API returns: the run's id plus the final state.
+
+    The fields have the same names as the keys of `FeasibilityState`, so the
+    state is passed in as it is. This model stays separate from the state on
+    purpose: it is the public API contract, and the state may grow internal
+    keys that clients should not see. Unknown keys are ignored.
+    """
+
     thread_id: str
     plan: TaskPlan | None = None
     # SerializeAsAny keeps extra fields of agent-specific finding subclasses.
@@ -51,11 +59,4 @@ def create_analysis(
     """Run the full workflow for one idea and return everything it produced."""
     thread_id = str(uuid4())
     result = graph.invoke({"idea": idea}, config={"configurable": {"thread_id": thread_id}})
-    return AnalysisResponse(
-        thread_id=thread_id,
-        plan=result.get("plan"),
-        findings=result.get("findings", {}),
-        validation=result.get("validation"),
-        revision_count=result.get("revision_count", 0),
-        report=result.get("report"),
-    )
+    return AnalysisResponse(thread_id=thread_id, **result)
