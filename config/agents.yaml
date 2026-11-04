@@ -33,7 +33,7 @@ technical:
     A solutions architect who knows the company's e-commerce platform,
     integrations, and data constraints.
   prompt_file: system_messages/technical.md
-  tools: [search_company_docs]
+  tools: [search_company_docs, web_search]
   llm:
     temperature: 0.2
 
@@ -47,7 +47,7 @@ financial:
     A finance business partner who builds investment cases for new
     e-commerce initiatives.
   prompt_file: system_messages/financial.md
-  tools: [search_company_docs]
+  tools: [search_company_docs, web_search]
   llm:
     temperature: 0.0
 
@@ -61,7 +61,7 @@ competitor:
     A market researcher who follows online retail and e-commerce
     technology closely.
   prompt_file: system_messages/competitor.md
-  tools: [search_company_docs]
+  tools: [search_company_docs, web_search]
   llm:
     temperature: 0.3
 
@@ -75,7 +75,7 @@ risk:
     A risk and compliance specialist who has reviewed technology,
     payment, and data projects in e-commerce.
   prompt_file: system_messages/risk.md
-  tools: [search_company_docs]
+  tools: [search_company_docs, web_search]
   llm:
     temperature: 0.1
 
