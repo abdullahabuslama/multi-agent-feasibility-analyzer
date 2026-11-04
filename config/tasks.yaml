@@ -1,0 +1,74 @@
+# How the agents work together.
+# The graph in src/orchestrator/graph.py is built from this file.
+# To change the order of the work, edit this file — not the graph code.
+
+workflow:
+  # First agent to run. It reads the idea and writes a brief for each analyst.
+  entry: supervisor
+
+  # Agents run stage by stage. Agents in the same stage run in parallel.
+  stages:
+    - [technical, financial, competitor]
+    - [risk]
+    - [validator]
+    - [reporter]
+
+  # The review agent can send work back to earlier agents.
+  # `max_revisions` is how many times that may happen before the
+  # workflow moves on anyway.
+  review:
+    agent: validator
+    max_revisions: 2
+
+# What each agent is asked to do. The supervisor reads these when it writes
+# the briefs, and each agent can read its own entry.
+tasks:
+  technical:
+    description: >
+      Assess if the company can implement the idea: required technologies
+      and infrastructure, dependencies on existing systems and APIs, data
+      requirements, security constraints, and implementation complexity.
+    expected_output: >
+      Requirements, dependencies, constraints, key assumptions, missing
+      information, and a feasibility score from 0 to 10.
+
+  financial:
+    description: >
+      Estimate the initial and recurring costs, the expected savings or
+      revenue, ROI, payback period, and total cost of ownership. Show which
+      assumptions move the result most.
+    expected_output: >
+      Assumptions, cost breakdown, benefit estimate, ROI, payback period,
+      and confidence notes.
+
+  competitor:
+    description: >
+      Identify direct and indirect competitors, compare features, target
+      customers, pricing, and positioning, and find market gaps.
+    expected_output: >
+      Competitive landscape, comparison summary, differentiation
+      opportunities, and key market observations.
+
+  risk:
+    description: >
+      Using the other agents' findings, analyse technical, financial,
+      operational, security, privacy, legal, AI, and market risks. Score
+      probability and impact and suggest mitigations.
+    expected_output: >
+      Risk register with category, description, likelihood, impact,
+      severity, evidence, and mitigation.
+
+  validator:
+    description: >
+      Check every finding for evidence, contradictions, calculation errors,
+      missing assumptions, and completeness.
+    expected_output: >
+      Approval decision, list of issues, and the agents that must revise
+      their work.
+
+  reporter:
+    description: >
+      Write the final feasibility report from the validated findings.
+    expected_output: >
+      Executive summary, detailed findings, assumptions, evidence, and a
+      recommendation.

@@ -1,0 +1,41 @@
+[project]
+name = "feasibility-analyzer"
+version = "0.1.0"
+description = "Multi-agent system that checks if a new e-commerce business idea is worth doing."
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "langchain>=1.4",
+    "langchain-core>=1.7",
+    "langgraph>=1.2",
+    "langchain-groq>=1.1",
+    "langchain-qdrant>=1.1",
+    "qdrant-client>=1.20",
+    "langchain-huggingface>=1.2",
+    "sentence-transformers>=6.2",
+    "langchain-text-splitters>=1.1",
+    "pymupdf>=2.0",
+    "python-docx>=1.2",
+    "fastapi>=0.162",
+    "uvicorn>=0.54",
+    "pydantic-settings>=2.16",
+    "python-dotenv>=1.2",
+    "pyyaml>=6.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=9.1",
+    "httpx>=0.28",
+]
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+include = ["src*", "config*", "api*"]
+
+[tool.pytest.ini_options]
+pythonpath = ["."]
+testpaths = ["tests"]
