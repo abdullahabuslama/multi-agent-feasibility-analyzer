@@ -28,6 +28,8 @@ class Settings(BaseSettings):
     llm_provider: str = "groq"
     llm_model: str = "openai/gpt-oss-120b"
 
+    exa_api_key: str = ""
+
     embedding_model: str = "sentence-transformers/all-MiniLM-L6-v2"
 
     qdrant_url: str = ""
