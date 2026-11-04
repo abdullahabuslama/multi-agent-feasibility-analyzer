@@ -16,9 +16,16 @@ from pydantic import BaseModel
 from config.settings import get_settings
 
 
+# How often the provider client retries a failed call, waiting longer each
+# time. The default (2 for Groq) is too few: three analysts run in parallel,
+# and on Groq's free tier (8,000 tokens per minute) one of them failed with
+# "429 rate limit" in a live run. An agent can still set its own `max_retries`.
+MAX_RETRIES = 6
+
+
 def get_chat_model(llm_params: dict[str, Any] | None = None) -> BaseChatModel:
     settings = get_settings()
-    params = dict(llm_params or {})
+    params = {"max_retries": MAX_RETRIES, **(llm_params or {})}
     model = params.pop("model", settings.llm_model)
     provider = params.pop("provider", settings.llm_provider)
     return init_chat_model(model, model_provider=provider, **params)
