@@ -1,4 +1,4 @@
-"""Risk Analysis agent — not implemented yet.
+"""Risk Analysis agent.
 
 Goal: find the material risks and estimate their severity before
 implementation. Runs after the technical, financial, and competitor
@@ -14,12 +14,14 @@ Responsibilities (proposal §9):
 
 Output: an AgentFinding with a risk register: category, description,
 likelihood, impact, severity, evidence, and mitigation.
+
+It runs the shared analyst loop in `src/agents/analyst.py`. To return
+more fields than AgentFinding has, subclass AgentFinding and set
+`output_type` on this class.
 """
 
-from src.agents.base import BaseAgent, placeholder_finding
-from src.orchestrator.state import AgentFinding, FeasibilityState
+from src.agents.analyst import AnalystAgent
 
 
-class RiskAgent(BaseAgent):
-    def analyze(self, state: FeasibilityState) -> AgentFinding:
-        return placeholder_finding(self.name)
+class RiskAgent(AnalystAgent):
+    pass
