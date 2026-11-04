@@ -4,8 +4,12 @@
   `fake_llm.tool_replies` to make it ask for tools first.
 - `memory_store`: Qdrant runs in memory with fake embeddings, so no model
   is downloaded and nothing is written to disk.
+- `run_store`: every test saves runs in its own temporary SQLite file,
+  never in the real run history.
 """
 
+from collections.abc import Iterator
+from pathlib import Path
 from typing import Any
 
 import pytest
@@ -15,9 +19,12 @@ from langchain_core.runnables import RunnableLambda
 from pydantic import BaseModel
 from qdrant_client import QdrantClient
 
+from api.app import app
+from api.dependencies import get_run_store
 from src.agents import base as agents_base
 from src.memory import long_term
 from src.orchestrator.state import AgentBrief, AgentFinding, BusinessIdea, FindingStatus, TaskPlan
+from src.runs.store import RunStore
 
 SAMPLE_IDEA = BusinessIdea(
     idea="Add an AI chat assistant that answers 'Where is my order?' questions.",
@@ -76,3 +83,11 @@ def memory_store(monkeypatch: pytest.MonkeyPatch) -> QdrantClient:
     monkeypatch.setattr(long_term, "get_client", lambda: client)
     monkeypatch.setattr(long_term, "get_embeddings", lambda: embeddings)
     return client
+
+
+@pytest.fixture(autouse=True)
+def run_store(tmp_path: Path) -> Iterator[RunStore]:
+    store = RunStore(tmp_path / "runs.sqlite")
+    app.dependency_overrides[get_run_store] = lambda: store
+    yield store
+    app.dependency_overrides.pop(get_run_store, None)
