@@ -41,9 +41,11 @@ class Settings(BaseSettings):
 
     knowledge_base_dir: Path = Path("data/knowledge_base")
 
+    runs_db_path: Path = Path(".runs/runs.sqlite")
+
     log_level: str = "INFO"
 
-    @field_validator("qdrant_path", "knowledge_base_dir")
+    @field_validator("qdrant_path", "knowledge_base_dir", "runs_db_path")
     @classmethod
     def _relative_to_project_root(cls, path: Path) -> Path:
         # Relative paths in `.env` mean "from the project root",
