@@ -31,7 +31,7 @@ This is a training project. The full proposal is in
 | RAG layer: company knowledge base in Qdrant + search tool | ✅ Ready |
 | HTTP API | ✅ Ready |
 | Technical, Financial, Competitor, Risk, Validator, Reporter agents | 🚧 Stubs: one per team member |
-| Web search tool | 🔍 The team is still choosing the search service |
+| Web search tool (Exa) | ✅ Ready |
 
 Until an agent is built, it returns a finding that says
 `"The <name> agent is not implemented yet."` So the whole workflow already
@@ -79,7 +79,9 @@ its file.
 1. **Agents decide, tools act.** A tool does one action (for example, search
    company documents). An agent decides when to use which tool.
 2. **RAG is a tool, not an agent.** Company knowledge is reached through the
-   `search_company_docs` tool. Any agent can use it.
+   `search_company_docs` tool. Any agent can use it. Public web facts come
+   from the `web_search` tool. Why it uses Exa is explained in
+   [docs/research/web_search_selection.md](docs/research/web_search_selection.md).
 3. **The blackboard.** Think of a whiteboard in a meeting room. Each agent
    pins its result on it, and the others can read it. Agents never write
    the shared state directly. They return a result, and
@@ -126,7 +128,7 @@ its file.
 │   ├── tools/
 │   │   ├── base.py           # Tool registry and @register_tool
 │   │   ├── db_tool.py        # search_company_docs (RAG search)
-│   │   ├── web_search.py     # Placeholder: search service not chosen yet
+│   │   ├── web_search.py     # web_search (Exa web search)
 │   │   └── code_runner.py    # Placeholder: not decided yet
 │   ├── orchestrator/
 │   │   ├── state.py          # Shared state and data models
@@ -179,6 +181,10 @@ cp .env.example .env
 Open `.env` and set `GROQ_API_KEY`. You can create a free key at
 <https://console.groq.com/keys>.
 
+Then set `EXA_API_KEY` for the `web_search` tool. You can create a free key
+at <https://dashboard.exa.ai>. Without it, everything else works, but a web
+search fails with a message that asks for the key.
+
 ### 3. Load the company knowledge base
 
 ```bash
@@ -227,6 +233,7 @@ no internet.
 |---|---|
 | `LLM_PROVIDER`, `LLM_MODEL` | Which chat model all agents use. Any provider supported by LangChain `init_chat_model` works; install its package too. |
 | `GROQ_API_KEY` | Key for Groq. Other providers use their own key variable. |
+| `EXA_API_KEY` | Key for Exa, used by the `web_search` tool. |
 | `EMBEDDING_MODEL` | Sentence Transformers model for the knowledge base. |
 | `QDRANT_URL` | Empty = local mode. Set it to use a Qdrant server. |
 | `QDRANT_PATH` | Folder for local mode. |
@@ -334,7 +341,5 @@ Then import the module in `src/tools/__init__.py`, and add `my_tool` to the
 
 ## Open tasks
 
-- **Web search tool:** the team is researching the best free search service
-  for agents. The needs are listed in `src/tools/web_search.py`.
 - **Specialist agents:** Technical, Financial, Competitor, Risk, Validator,
   and Reporter. One owner each.
